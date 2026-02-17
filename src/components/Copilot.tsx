@@ -38,7 +38,7 @@ export const Copilot: React.FC<CopilotProps> = ({ audits, lang }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             messages: [...messages, userMsg],
-            context: { audits, lang } // Enviamos contexto a Groq
+            context: { auditCount: audits?.length || 0, language: lang } 
         }),
       });
 
@@ -66,18 +66,15 @@ export const Copilot: React.FC<CopilotProps> = ({ audits, lang }) => {
               
               setMessages(prev => {
                 const updated = [...prev];
-                const lastIndex = updated.length - 1;
-                updated[lastIndex] = { ...updated[lastIndex], content: assistantText };
+                updated[updated.length - 1] = { role: 'assistant', content: assistantText };
                 return updated;
               });
-            } catch (e) {
-              console.error("Error parseando stream", e);
-            }
+            } catch (e) { continue; }
           }
         }
       }
     } catch (error) {
-      console.error("Error en el chat:", error);
+      console.error("Chat error:", error);
     } finally {
       setIsTyping(false);
     }
@@ -94,7 +91,7 @@ export const Copilot: React.FC<CopilotProps> = ({ audits, lang }) => {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
             <div className="text-center text-slate-500 mt-10">
-                <p>Hola, soy tu asistente de auditoría. ¿En qué puedo ayudarte hoy?</p>
+                <p>Hello! I am your audit assistant. How can I help you today?</p>
             </div>
         )}
         {messages.map((m, i) => (
@@ -112,17 +109,17 @@ export const Copilot: React.FC<CopilotProps> = ({ audits, lang }) => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="Consulta sobre normativas ISO..."
-          className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500 transition-colors"
+          placeholder="Ask about ISO standards..."
+          className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-white outline-none"
         />
         <button 
             onClick={handleSend} 
             disabled={isTyping} 
-            className={`p-2 rounded-xl transition-colors ${isTyping ? 'bg-slate-700' : 'bg-indigo-600 hover:bg-indigo-500'}`}
+            className="p-2 bg-indigo-600 rounded-xl hover:bg-indigo-500 disabled:bg-slate-700 transition-colors"
         >
           <Send size={20} className="text-white" />
         </button>
       </div>
     </div>
   );
-}; // <--- Aquí estaba el problema, asegúrate de que esta llave cierre el componente
+};
