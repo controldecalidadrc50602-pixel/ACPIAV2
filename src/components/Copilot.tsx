@@ -1,11 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, Sparkles } from 'lucide-react';
+// Importa tus tipos globales si los tienes, si no, usa los de abajo
+import { Audit, Language } from '../types'; 
 
-// Definimos la estructura de un mensaje para que TS no use 'never'
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
+
+// DEFINIMOS LAS PROPS AQUÍ
+interface CopilotProps {
+  audits: Audit[];
+  lang: Language;
+}
+
+// APLICAMOS LAS PROPS AL COMPONENTE
+export const Copilot: React.FC<CopilotProps> = ({ audits, lang }) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  // ... resto del código que ya corregimos
 
 export const Copilot: React.FC = () => {
   // Tipamos el estado como un arreglo de objetos Message
