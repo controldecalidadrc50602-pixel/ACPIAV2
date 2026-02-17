@@ -81,12 +81,10 @@ export const Copilot: React.FC<CopilotProps> = ({ audits, lang }) => {
   };
 
   return (
-    <div className="flex flex-col h-[600px] bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl">
-      <div className="p-4 border-b border-slate-800 flex items-center gap-2">
-        <Bot className="text-indigo-400" />
-        <h3 className="font-bold text-slate-100">ACPIA Copilot</h3>
-        <Sparkles size={14} className="text-amber-400 animate-pulse" />
-      </div>
+    return (
+  /* Agregamos max-w-4xl para que no sea infinito a lo ancho y h-[500px] para limitar el alto */
+  <div className="flex flex-col h-[500px] max-w-4xl mx-auto bg-slate-900/50 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-4">
+    {/* El resto del contenido se mantiene igual */}
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
