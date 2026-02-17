@@ -1,31 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, Sparkles } from 'lucide-react';
-// Importa tus tipos globales si los tienes, si no, usa los de abajo
-import { Audit, Language } from '../types'; 
+import { Audit, Language } from '../types';
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
-// DEFINIMOS LAS PROPS AQUÍ
 interface CopilotProps {
   audits: Audit[];
   lang: Language;
 }
 
-// APLICAMOS LAS PROPS AL COMPONENTE
 export const Copilot: React.FC<CopilotProps> = ({ audits, lang }) => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  // ... resto del código que ya corregimos
-
-export const Copilot: React.FC = () => {
-  // Tipamos el estado como un arreglo de objetos Message
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-
-  // Tipamos el Ref específicamente como un HTMLDivElement
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
@@ -46,7 +36,10 @@ export const Copilot: React.FC = () => {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMsg] }),
+        body: JSON.stringify({ 
+            messages: [...messages, userMsg],
+            context: { audits, lang } // Enviamos contexto a Groq
+        }),
       });
 
       if (!response.body) throw new Error('No response body');
@@ -55,7 +48,6 @@ export const Copilot: React.FC = () => {
       const decoder = new TextDecoder();
       let assistantText = '';
 
-      // Agregamos el mensaje vacío del asistente que iremos llenando
       setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
       while (true) {
@@ -100,6 +92,11 @@ export const Copilot: React.FC = () => {
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {messages.length === 0 && (
+            <div className="text-center text-slate-500 mt-10">
+                <p>Hola, soy tu asistente de auditoría. ¿En qué puedo ayudarte hoy?</p>
+            </div>
+        )}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[80%] p-3 rounded-2xl ${m.role === 'user' ? 'bg-indigo-600' : 'bg-slate-800'} text-slate-100`}>
@@ -116,12 +113,16 @@ export const Copilot: React.FC = () => {
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
           placeholder="Consulta sobre normativas ISO..."
-          className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-white outline-none"
+          className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-white outline-none focus:border-indigo-500 transition-colors"
         />
-        <button onClick={handleSend} disabled={isTyping} className="bg-indigo-600 p-2 rounded-xl">
-          <Send size={20} />
+        <button 
+            onClick={handleSend} 
+            disabled={isTyping} 
+            className={`p-2 rounded-xl transition-colors ${isTyping ? 'bg-slate-700' : 'bg-indigo-600 hover:bg-indigo-500'}`}
+        >
+          <Send size={20} className="text-white" />
         </button>
       </div>
     </div>
   );
-};
+}; // <--- Aquí estaba el problema, asegúrate de que esta llave cierre el componente
