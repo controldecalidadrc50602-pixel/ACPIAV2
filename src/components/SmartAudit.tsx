@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from './ui/Button';
 import {
@@ -88,10 +87,7 @@ export const SmartAudit: React.FC<SmartAuditProps> = ({ lang, onSave }) => {
             const reader = new FileReader();
             reader.onloadend = () => {
                 const data = (reader.result as string).split(',')[1];
-                setRawContent(data); // Base64 for text? Or just text? The original code assumes Base64 for text which is weird for .txt but okay if it works. 
-                // Actually original code: const data = (reader.result as string).split(',')[1]; -> implies DataURL base64. 
-                // And then: const binaryString = atob(rawContent); -> decodes it.
-                // So I should keep it as is for text.
+                setRawContent(data); 
                 toast.success(lang === 'es' ? "Archivo cargado" : "File loaded");
             };
             reader.readAsDataURL(file);
@@ -99,14 +95,14 @@ export const SmartAudit: React.FC<SmartAuditProps> = ({ lang, onSave }) => {
     };
 
     const runSecurityAnalysis = async () => {
-        if (!rawContent) return;
+        if (!rawContent || !currentUser) return;
 
-        // Check SaaS Limits
+        // 1. Check SaaS Limits (CORREGIDO: await y validación de string)
         const usage = getUsageStats();
-        const limitCheck = checkUsageLimit(currentUser, usage);
+        const isAllowed = await checkUsageLimit(currentUser.id, usage.aiAuditsCount);
 
-        if (!limitCheck.allowed) {
-            toast.error(limitCheck.reason || "Límite alcanzado");
+        if (!isAllowed) {
+            toast.error("Límite de plan alcanzado. Actualiza para continuar.");
             return;
         }
 
@@ -126,7 +122,6 @@ export const SmartAudit: React.FC<SmartAuditProps> = ({ lang, onSave }) => {
             if (mode === 'audio') {
                 if (!audioFile) return;
 
-                // 1. Transcribe
                 toast.loading("👂 Transcribiendo Audio (Groq Whisper)...", { id: 'transcribe' });
                 const transcript = await transcribeAudio(audioFile);
                 toast.dismiss('transcribe');
@@ -136,25 +131,20 @@ export const SmartAudit: React.FC<SmartAuditProps> = ({ lang, onSave }) => {
                     return;
                 }
 
-                // 2. Redact PII
                 toast.loading("🛡️ Anonimizando Datos (ISO 42001)...", { id: 'redact' });
                 decodedContent = await redactPII(transcript);
                 logSecurityEvent(currentUser?.id || 'unknown', 'PII_REDACTION', `Redacted PII from audio: ${audioFile.name}`, 'INFO');
                 toast.dismiss('redact');
 
-                // Update UI to show the transcript
-                setRawContent(btoa(decodedContent)); // Store as base64 to match text flow if needed, or just change logic.
-                // Actually `rawContent` is State. But `decodedContent` var is used below. 
+                setRawContent(btoa(decodedContent)); 
 
             } else {
-                // Text Mode
                 const binaryString = atob(rawContent);
                 const bytes = new Uint8Array(binaryString.length);
                 for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
                 decodedContent = new TextDecoder().decode(bytes);
             }
 
-            // Security Check on the text (transcript or uploaded user text)
             const securityCheck = interceptAndValidate(decodedContent);
             setSecReport(securityCheck);
 
@@ -165,13 +155,11 @@ export const SmartAudit: React.FC<SmartAuditProps> = ({ lang, onSave }) => {
                 return;
             }
 
-            let aiResult: SmartAnalysisResult;
-
             toast.loading("🧠 Analizando Calidad...", { id: 'analyze' });
             const analysis = await analyzeFullAudit(decodedContent);
             toast.dismiss('analyze');
 
-            aiResult = {
+            const aiResult: SmartAnalysisResult = {
                 score: analysis.score,
                 csat: Math.ceil(analysis.score / 20),
                 notes: analysis.notes,
@@ -181,12 +169,11 @@ export const SmartAudit: React.FC<SmartAuditProps> = ({ lang, onSave }) => {
                 participants: []
             };
 
-            if (aiResult) {
-                setResult(aiResult);
-                setStep('results');
-                logSecurityEvent(currentUser?.id || 'unknown', 'AUDIT_SUCCESS', `AI Analysis completed for ${interactionId}`, 'INFO');
-                toast.success(lang === 'es' ? "Inferencia completa" : "Inference complete");
-            }
+            setResult(aiResult);
+            setStep('results');
+            logSecurityEvent(currentUser.id, 'AUDIT_SUCCESS', `AI Analysis completed for ${interactionId}`, 'INFO');
+            toast.success(lang === 'es' ? "Inferencia completa" : "Inference complete");
+            
         } catch (err) {
             console.error(err);
             toast.error(lang === 'es' ? "Error Neuronal" : "Neural Error");
