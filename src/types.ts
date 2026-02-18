@@ -17,7 +17,6 @@ export enum SecurityLevel {
   RED = 'RED'
 }
 
-// Actualizado para coincidir con el servicio de suscripciones ($49, $199, Enterprise)
 export enum SubscriptionTier {
   FREE = 'FREE',
   PRO = 'PRO',
@@ -122,7 +121,8 @@ export enum View {
   REPORTS = 'REPORTS',
   MANAGEMENT = 'MANAGEMENT',
   SETTINGS = 'SETTINGS',
-  AGENT_PROFILE = 'AGENT_PROFILE',<br>  PROJECT_PROFILE = 'PROJECT_PROFILE',
+  AGENT_PROFILE = 'AGENT_PROFILE',
+  PROJECT_PROFILE = 'PROJECT_PROFILE',
   COPILOT_PAGE = 'COPILOT_PAGE',
   SUBSCRIPTION = 'SUBSCRIPTION'
 }
@@ -159,7 +159,7 @@ export interface User {
   role: UserRole;
   pin: string;
   organizationId: string;
-  organization_id?: string; // Agregado para compatibilidad con bypass RC506
+  organization_id?: string;
   email?: string;
   supabaseId?: string;
   subscriptionTier?: SubscriptionTier;
