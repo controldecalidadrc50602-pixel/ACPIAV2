@@ -1,36 +1,18 @@
 import { supabase } from './supabaseClient';
 
-export interface DashboardStats {
-    auditCount: number;
-    agentCount: number;
-    agents: any[];
-}
-
-export const getDashboardStats = async (): Promise<DashboardStats> => {
+export const getDashboardStats = async () => {
     try {
-        // 1. Contar auditorías reales
-        const { count: auditCount } = await supabase
-            .from('audits')
-            .select('*', { count: 'exact', head: true });
-
-        // 2. Traer agentes para el Ranking
-        const { data: agents } = await supabase
-            .from('agents')
-            .select('id, name')
-            .limit(5);
-
-        // 3. Contar total de agentes
-        const { count: agentCount } = await supabase
-            .from('agents')
-            .select('*', { count: 'exact', head: true });
+        // Usamos .from('agents') y .from('audits') tal cual salen en tus errores 404
+        const { data: agents } = await supabase.from('agents').select('id, name').limit(5);
+        const { count: auditCount } = await supabase.from('audits').select('*', { count: 'exact', head: true });
 
         return {
             auditCount: auditCount || 0,
-            agentCount: agentCount || 0,
+            agentCount: agents?.length || 0,
             agents: agents || []
         };
-    } catch (error) {
-        console.error("Error Dashboard:", error);
+    } catch (e) {
+        console.error("Dashboard Service Error", e);
         return { auditCount: 0, agentCount: 0, agents: [] };
     }
 };
