@@ -3,7 +3,7 @@ import { Message } from '../types';
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
-// Función auxiliar para llamar a Groq directamente
+// Función maestra para llamadas directas a Groq
 const callGroq = async (payload: any) => {
     if (!GROQ_API_KEY) {
         throw new Error("VITE_GROQ_API_KEY is missing in environment variables");
@@ -31,7 +31,7 @@ export const generateAuditAnalysis = async (text: string, rubricLabel: string): 
     try {
         const completion = await callGroq({
             messages: [
-                { role: "system", content: `You are an expert QA Auditor. Analyze the following segment based on: ${rubricLabel}. Be concise and objective.` },
+                { role: "system", content: `You are an expert QA Auditor. Analyze based on: ${rubricLabel}. Be concise.` },
                 { role: "user", content: text }
             ],
             model: "llama3-8b-8192",
@@ -40,7 +40,7 @@ export const generateAuditAnalysis = async (text: string, rubricLabel: string): 
         return completion.choices[0]?.message?.content || "No analysis generated.";
     } catch (e) {
         console.error("Analysis Error", e);
-        return "Error calling AI Service. Check API Key.";
+        return "Error calling AI Service.";
     }
 };
 
@@ -67,7 +67,7 @@ export const analyzeFullAudit = async (transcript: string): Promise<{ score: num
     try {
         const completion = await callGroq({
             messages: [
-                { role: "system", content: "Analyze this call. Return ONLY a JSON with: score (0-100), notes (summary), and sentiment (POSITIVE, NEUTRAL, NEGATIVE)." },
+                { role: "system", content: "Analyze call. Return ONLY JSON: { \"score\": number, \"notes\": \"string\", \"sentiment\": \"string\" }" },
                 { role: "user", content: transcript }
             ],
             model: "llama3-70b-8192",
@@ -82,7 +82,24 @@ export const analyzeFullAudit = async (transcript: string): Promise<{ score: num
     }
 };
 
-// Nota: Para transcripción directa desde el cliente, Groq usa otro endpoint
+// --- ESTA ES LA FUNCIÓN QUE FALTABA Y CAUSABA EL ERROR ---
+export const redactPII = async (text: string): Promise<string> => {
+    try {
+        const completion = await callGroq({
+            messages: [
+                { role: "system", content: "Replace all PII (Names, Phones, Emails) with [REDACTED]. Return ONLY the redacted text." },
+                { role: "user", content: text }
+            ],
+            model: "llama3-8b-8192",
+            temperature: 0.0,
+        });
+        return completion.choices[0]?.message?.content || text;
+    } catch (e) {
+        console.error("PII Redaction Error", e);
+        return text;
+    }
+};
+
 export const transcribeAudio = async (audioFile: File): Promise<string> => {
     try {
         const formData = new FormData();
