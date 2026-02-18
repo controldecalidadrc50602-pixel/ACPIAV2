@@ -23,8 +23,6 @@ import { LandingPage } from './pages/LandingPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { UserRole, SubscriptionTier } from './types';
 
-// ... imports remain the same
-
 const AppRoutes = () => {
     const { currentUser } = useAuth();
 
@@ -47,14 +45,14 @@ const AppRoutes = () => {
                 {/* Free Tier Limits */}
                 <Route path="audit/new" element={<AuditFormPage />} />
 
-                {/* Paid Features */}
+                {/* Paid Features - Actualizado a SubscriptionTier.PRO */}
                 <Route path="smart-audit" element={
-                    <ProtectedRoute requiredPlan={SubscriptionTier.STANDARD}>
+                    <ProtectedRoute requiredPlan={SubscriptionTier.PRO}>
                         <SmartAuditPage />
                     </ProtectedRoute>
                 } />
                 <Route path="reports" element={
-                    <ProtectedRoute requiredPlan={SubscriptionTier.STANDARD}>
+                    <ProtectedRoute requiredPlan={SubscriptionTier.PRO}>
                         <ReportsPage />
                     </ProtectedRoute>
                 } />
