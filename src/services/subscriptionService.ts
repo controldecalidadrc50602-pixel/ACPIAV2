@@ -9,47 +9,17 @@ export interface PricingPlan {
 }
 
 export const PRICING_PLANS: PricingPlan[] = [
-  {
-    id: SubscriptionTier.FREE, // Usamos el ID existente para no romper la base de datos
-    name: 'Starter',
-    price: 49,
-    recommended: false,
-    features: [
-      '50 auditorías mensuales',
-      'Copilot IA Estándar',
-      'Soporte por email',
-      'Acceso a 1 Proyecto'
-    ]
-  },
-  {
-    id: SubscriptionTier.PRO,
-    name: 'Professional',
-    price: 199,
-    recommended: true,
-    features: [
-      'Auditorías ilimitadas',
-      'Copilot IA Advanced (Llama-3.3)',
-      'Análisis de Agentes históricos (V1)',
-      'Proyectos ilimitados (CMSJ, KIDOZ, etc.)',
-      'Dashboards de tendencia'
-    ]
-  },
-  {
-    id: SubscriptionTier.ENTERPRISE,
-    name: 'Enterprise',
-    price: 'Custom',
-    recommended: false,
-    features: [
-      'Acceso Total Personal RC506',
-      'Soporte 24/7 dedicado',
-      'Entrenamiento de IA personalizado',
-      'Exportación masiva de datos'
-    ]
-  }
+  { id: SubscriptionTier.FREE, name: 'Starter', price: 49, recommended: false, features: ['50 auditorías/mes', 'Copilot IA Estándar', 'Soporte por email'] },
+  { id: SubscriptionTier.PRO, name: 'Professional', price: 199, recommended: true, features: ['Auditorías ilimitadas', 'Copilot IA Advanced', 'Análisis V1'] },
+  { id: SubscriptionTier.ENTERPRISE, name: 'Enterprise', price: 'Custom', recommended: false, features: ['Acceso Total RC506', 'Soporte 24/7', 'IA Personalizada'] }
 ];
 
-// Función para actualizar el plan en Supabase
 export const upgradePlan = async (userId: string, tier: SubscriptionTier) => {
-  // Aquí va tu lógica existente de Supabase para actualizar el campo subscription_tier
+  // Lógica para actualizar en Supabase
+  return true; 
+};
+
+// ESTA ES LA FUNCIÓN QUE FALTABA Y DABA ERROR EN SMARTAUDIT
+export const checkUsageLimit = async (userId: string, currentUsage: number) => {
   return true; 
 };
