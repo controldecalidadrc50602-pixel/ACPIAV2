@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -11,11 +10,11 @@ interface ProtectedRouteProps {
     children?: React.ReactNode;
 }
 
-const PLAN_HIERARCHY = {
+// Actualizado con los nuevos Tiers de la Fase 1
+const PLAN_HIERARCHY: Record<SubscriptionTier, number> = {
     [SubscriptionTier.FREE]: 0,
-    [SubscriptionTier.STANDARD]: 1,
-    [SubscriptionTier.AI_PRO]: 2,
-    [SubscriptionTier.ENTERPRISE]: 3
+    [SubscriptionTier.PRO]: 1, // Antes era STANDARD/AI_PRO
+    [SubscriptionTier.ENTERPRISE]: 2
 };
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
@@ -30,12 +29,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return <Navigate to={redirectPath} replace />;
     }
 
+    // El Administrador siempre tiene acceso a todo
     if (requiredRole && currentUser.role !== requiredRole && currentUser.role !== UserRole.ADMIN) {
         return <Navigate to="/app" replace />;
     }
 
     if (requiredPlan) {
         const userPlan = currentUser.subscriptionTier || SubscriptionTier.FREE;
+        
+        // Validación de jerarquía: Si el plan del usuario es menor al requerido, redirigir
         if (PLAN_HIERARCHY[userPlan] < PLAN_HIERARCHY[requiredPlan]) {
             return <Navigate to="/app/subscription" replace />;
         }
