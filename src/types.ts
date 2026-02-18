@@ -1,4 +1,3 @@
-
 export enum AuditType {
   VOICE = 'VOICE',
   CHAT = 'CHAT'
@@ -18,10 +17,10 @@ export enum SecurityLevel {
   RED = 'RED'
 }
 
+// Actualizado para coincidir con el servicio de suscripciones ($49, $199, Enterprise)
 export enum SubscriptionTier {
   FREE = 'FREE',
-  STANDARD = 'STANDARD',
-  AI_PRO = 'AI_PRO',
+  PRO = 'PRO',
   ENTERPRISE = 'ENTERPRISE'
 }
 
@@ -68,9 +67,6 @@ export interface RubricItem {
   type: AuditType | 'BOTH';
 }
 
-/**
- * Define ProjectTargets to fix export error.
- */
 export interface ProjectTargets {
   score: number;
   csat: number;
@@ -96,9 +92,6 @@ export interface Audit {
   organization_id?: string;
 }
 
-/**
- * Define VoiceAudit and ChatAudit to fix export errors.
- */
 export interface VoiceAudit extends Audit {
   duration: number;
 }
@@ -129,22 +122,13 @@ export enum View {
   REPORTS = 'REPORTS',
   MANAGEMENT = 'MANAGEMENT',
   SETTINGS = 'SETTINGS',
-  AGENT_PROFILE = 'AGENT_PROFILE',
-  PROJECT_PROFILE = 'PROJECT_PROFILE',
+  AGENT_PROFILE = 'AGENT_PROFILE',<br>  PROJECT_PROFILE = 'PROJECT_PROFILE',
   COPILOT_PAGE = 'COPILOT_PAGE',
   SUBSCRIPTION = 'SUBSCRIPTION'
 }
 
 export type Language = 'en' | 'es';
-
-/**
- * Define Theme to fix export error.
- */
 export type Theme = 'light' | 'dark';
-
-/**
- * Define AgentTrend to fix export error.
- */
 export type AgentTrend = 'UP' | 'DOWN' | 'STABLE';
 
 export interface Agent {
@@ -166,7 +150,7 @@ export interface Project {
 export enum UserRole {
   ADMIN = 'ADMIN',
   AUDITOR = 'AUDITOR',
-  CLIENT = 'CLIENT' // Rol para el cliente final (solo lectura de sus proyectos)
+  CLIENT = 'CLIENT'
 }
 
 export interface User {
@@ -175,6 +159,7 @@ export interface User {
   role: UserRole;
   pin: string;
   organizationId: string;
+  organization_id?: string; // Agregado para compatibilidad con bypass RC506
   email?: string;
   supabaseId?: string;
   subscriptionTier?: SubscriptionTier;
@@ -218,9 +203,6 @@ export interface SubscriptionPlan {
   recommended?: boolean;
 }
 
-/**
- * Define Badge to fix export error.
- */
 export interface Badge {
   id: string;
   name: string;
