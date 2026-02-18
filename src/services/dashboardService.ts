@@ -2,39 +2,35 @@ import { supabase } from './supabaseClient';
 
 export interface DashboardStats {
     auditCount: number;
-    avgScore: string;
+    agentCount: number;
     agents: any[];
 }
 
 export const getDashboardStats = async (): Promise<DashboardStats> => {
     try {
-        // 1. Obtener total de auditorías reales
-        const { count } = await supabase
+        // 1. Contar auditorías reales
+        const { count: auditCount } = await supabase
             .from('audits')
             .select('*', { count: 'exact', head: true });
 
-        // 2. Obtener agentes de tu tabla de la V1
+        // 2. Traer agentes para el Ranking
         const { data: agents } = await supabase
             .from('agents')
             .select('id, name')
             .limit(5);
 
-        // 3. Calcular promedio de calidad real
-        const { data: scores } = await supabase
-            .from('audits')
-            .select('quality_score');
-        
-        const avgScore = scores && scores.length > 0
-            ? (scores.reduce((acc, curr) => acc + curr.quality_score, 0) / scores.length).toFixed(1) 
-            : "0";
+        // 3. Contar total de agentes
+        const { count: agentCount } = await supabase
+            .from('agents')
+            .select('*', { count: 'exact', head: true });
 
         return {
-            auditCount: count || 0,
-            avgScore: `${avgScore}%`,
+            auditCount: auditCount || 0,
+            agentCount: agentCount || 0,
             agents: agents || []
         };
     } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
-        return { auditCount: 0, avgScore: "0%", agents: [] };
+        console.error("Error Dashboard:", error);
+        return { auditCount: 0, agentCount: 0, agents: [] };
     }
 };
