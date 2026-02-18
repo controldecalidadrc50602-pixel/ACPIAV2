@@ -1,136 +1,104 @@
-import { Message, Audit } from '../types';
+import { Message } from '../types';
 
-// Groq API Key is now handled in the backend (api/chat.ts)
+const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+
+// Función auxiliar para llamar a Groq directamente
+const callGroq = async (payload: any) => {
+    if (!GROQ_API_KEY) {
+        throw new Error("VITE_GROQ_API_KEY is missing in environment variables");
+    }
+
+    const response = await fetch(GROQ_API_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Groq API Error:", errorData);
+        throw new Error(errorData.error?.message || 'Groq API failure');
+    }
+
+    return await response.json();
+};
 
 export const generateAuditAnalysis = async (text: string, rubricLabel: string): Promise<string> => {
     try {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                messages: [
-                    { role: "system", content: "You are an expert QA Auditor. Analyze the following transcript segment based on this criteria: " + rubricLabel + ". Be concise, objective and constructive." },
-                    { role: "user", content: text }
-                ],
-                model: "llama3-8b-8192",
-                temperature: 0.3,
-            })
+        const completion = await callGroq({
+            messages: [
+                { role: "system", content: `You are an expert QA Auditor. Analyze the following segment based on: ${rubricLabel}. Be concise and objective.` },
+                { role: "user", content: text }
+            ],
+            model: "llama3-8b-8192",
+            temperature: 0.3,
         });
-
-        if (!response.ok) throw new Error('Network response was not ok');
-
-        const completion = await response.json();
         return completion.choices[0]?.message?.content || "No analysis generated.";
     } catch (e) {
         console.error("Analysis Error", e);
-        return "Error calling AI Service.";
+        return "Error calling AI Service. Check API Key.";
     }
 };
 
 export const chatWithCopilot = async (messages: Message[], context?: string): Promise<string> => {
     try {
-        const systemMessage = {
-            role: "system",
-            content: `You are ACPIA Copilot, an AI assistant for Quality Assurance. 
-            Context: ${context || "No specific context provided."}
-            Help the user improve agent performance, analyze trends, and write reports.`
-        };
-
         const apiMessages = [
-            systemMessage,
-            ...messages.map(m => ({ role: m.role as 'user' | 'assistant', content: m.text }))
+            { role: "system", content: `You are ACPIA Copilot. Context: ${context || "QA Assistant"}` },
+            ...messages.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text }))
         ];
 
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                messages: apiMessages,
-                model: "llama3-70b-8192",
-                temperature: 0.7,
-            })
+        const completion = await callGroq({
+            messages: apiMessages,
+            model: "llama3-70b-8192",
+            temperature: 0.7,
         });
-
-        if (!response.ok) throw new Error('Network response was not ok');
-
-        const completion = await response.json();
         return completion.choices[0]?.message?.content || "I didn't understand that.";
     } catch (e) {
         console.error("Chat Error", e);
-        return "Error processing your request.";
+        return "Error processing request.";
     }
 };
 
 export const analyzeFullAudit = async (transcript: string): Promise<{ score: number, notes: string, sentiment: string }> => {
     try {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                messages: [
-                    { role: "system", content: "Analyze this call transcript. Return a JSON with: score (0-100), notes (summary), and sentiment (POSITIVE, NEUTRAL, NEGATIVE, MIXED)." },
-                    { role: "user", content: transcript }
-                ],
-                model: "llama3-70b-8192",
-                response_format: { type: "json_object" }
-            })
+        const completion = await callGroq({
+            messages: [
+                { role: "system", content: "Analyze this call. Return ONLY a JSON with: score (0-100), notes (summary), and sentiment (POSITIVE, NEUTRAL, NEGATIVE)." },
+                { role: "user", content: transcript }
+            ],
+            model: "llama3-70b-8192",
+            response_format: { type: "json_object" }
         });
 
-        if (!response.ok) throw new Error('Network response was not ok');
-
-        const completion = await response.json();
         const content = completion.choices[0]?.message?.content;
-        if (content) {
-            return JSON.parse(content);
-        }
-        return { score: 0, notes: "Failed to parse AI response", sentiment: "NEUTRAL" };
+        return content ? JSON.parse(content) : { score: 0, notes: "Error", sentiment: "NEUTRAL" };
     } catch (e) {
         console.error("Full Analysis Error", e);
         return { score: 0, notes: "Error", sentiment: "NEUTRAL" };
     }
-}
+};
 
+// Nota: Para transcripción directa desde el cliente, Groq usa otro endpoint
 export const transcribeAudio = async (audioFile: File): Promise<string> => {
     try {
         const formData = new FormData();
         formData.append('file', audioFile);
+        formData.append('model', 'whisper-large-v3');
 
-        const response = await fetch('/api/transcribe', {
+        const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
             method: 'POST',
+            headers: { 'Authorization': `Bearer ${GROQ_API_KEY}` },
             body: formData,
         });
-
-        if (!response.ok) throw new Error('Network response was not ok');
 
         const completion = await response.json();
         return completion.text || "";
     } catch (e) {
         console.error("Transcribe Error", e);
         return "Error transcribing audio.";
-    }
-};
-
-export const redactPII = async (text: string): Promise<string> => {
-    try {
-        const response = await fetch('/api/chat', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                messages: [
-                    { role: "system", content: "You are a Data Privacy Shield. Replace all PII (Names, Phone Numbers, Credit Cards, Emails, Addresses) in the text with [REDACTED]. Return ONLY the redacted text. Do not include any explanations or other text." },
-                    { role: "user", content: text }
-                ],
-                model: "llama3-70b-8192",
-                temperature: 0.0,
-            })
-        });
-
-        if (!response.ok) throw new Error('Network response was not ok');
-
-        const completion = await response.json();
-        return completion.choices[0]?.message?.content || text;
-    } catch (e) {
-        console.error("PII Redaction Error", e);
-        return text;
     }
 };
