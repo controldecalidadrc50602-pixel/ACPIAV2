@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '../types';
+import { User, UserRole, SubscriptionTier } from '../types';
 import { supabase } from '../services/supabaseClient';
 
 interface AuthContextType {
@@ -15,37 +15,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // FUNCIÓN MAESTRA: Aplica el "Bypass RC506" y normaliza el usuario
+    const enrichUser = (supabaseUser: any): User => {
+        const email = supabaseUser.email || '';
+        
+        // REGLA DE ORO: Si es de RC506, es Enterprise por defecto
+        const isRC506 = email.toLowerCase().endsWith('@rc506.com');
+        
+        return {
+            id: supabaseUser.id,
+            name: supabaseUser.user_metadata?.name || email.split('@')[0] || 'User',
+            email: email,
+            role: (supabaseUser.user_metadata?.role as UserRole) || UserRole.CLIENT,
+            organizationId: isRC506 ? 'RC506-PILOT' : (supabaseUser.user_metadata?.organizationId || 'GLOBAL'),
+            organization_id: isRC506 ? 'rc506-pilot' : (supabaseUser.user_metadata?.organizationId || 'global'),
+            // Si es RC506 -> ENTERPRISE, si no -> el tier que tenga o PRO por ser early adopter
+            subscriptionTier: isRC506 
+                ? SubscriptionTier.ENTERPRISE 
+                : (supabaseUser.user_metadata?.subscriptionTier as SubscriptionTier) || SubscriptionTier.PRO,
+            pin: 'N/A'
+        };
+    };
+
     useEffect(() => {
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {
-                // Map Supabase user to App User
-                const user: User = {
-                    id: session.user.id,
-                    name: session.user.user_metadata?.name || session.user.email || 'User',
-                    email: session.user.email || '',
-                    role: (session.user.user_metadata?.role as UserRole) || UserRole.CLIENT,
-                    organizationId: session.user.user_metadata?.organizationId || 'RC506',
-                    subscriptionTier: session.user.user_metadata?.subscriptionTier || 'FREE',
-                    pin: 'N/A'
-                };
-                setCurrentUser(user);
+                setCurrentUser(enrichUser(session.user));
             }
             setLoading(false);
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
-                const user: User = {
-                    id: session.user.id,
-                    name: session.user.user_metadata?.name || session.user.email || 'User',
-                    email: session.user.email || '',
-                    role: (session.user.user_metadata?.role as UserRole) || UserRole.CLIENT,
-                    organizationId: session.user.user_metadata?.organizationId || 'RC506',
-                    subscriptionTier: session.user.user_metadata?.subscriptionTier || 'FREE',
-                    pin: 'N/A'
-                };
-                setCurrentUser(user);
+                setCurrentUser(enrichUser(session.user));
             } else {
                 setCurrentUser(null);
             }
@@ -56,13 +59,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const login = async (user: User) => {
-        // This 'login' function was previously just setting state. 
-        // With Supabase, login happens via supabase.auth.signInWithPassword in the Login component.
-        // So we might need to expose a signOut function and maybe nothing else, 
-        // or wrap the signIn functions here.
-        // For backwards compatibility with the existing Login component (which connects to 'onLogin' prop),
-        // we might need to adjust the Login component too.
-        // But for now, let's keep the context providing the source of truth.
         console.warn("Legacy login called - Supabase handles auth state automatically.");
         setCurrentUser(user);
     };
