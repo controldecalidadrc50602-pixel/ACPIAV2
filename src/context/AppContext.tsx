@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getAudits, getAppSettings, getTheme } from '../services/storageService';
+import { getAudits, getAppSettings } from '../services/storageService';
 import { Audit } from '../types';
 
 interface AppContextType {
     audits: Audit[];
     companyName: string;
     lang: 'es' | 'en';
+    setLang: (lang: 'es' | 'en') => void;
     refreshData: () => void;
 }
 
@@ -17,21 +18,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const [lang, setLang] = useState<'es' | 'en'>('es');
 
     const refreshData = async () => {
-        const [auditsData, settings] = await Promise.all([
-            getAudits(),
-            getAppSettings()
-        ]);
-        setAudits(auditsData);
-        setCompanyName(settings.companyName || 'ACPIA');
-        setLang((settings.lang as 'es' | 'en') || 'es');
+        const [a, s] = await Promise.all([getAudits(), getAppSettings()]);
+        setAudits(a);
+        setCompanyName(s.companyName || 'ACPIA');
+        setLang((s.lang as 'es' | 'en') || 'es');
     };
 
-    useEffect(() => {
-        refreshData();
-    }, []);
+    useEffect(() => { refreshData(); }, []);
 
     return (
-        <AppContext.Provider value={{ audits, companyName, lang, refreshData }}>
+        <AppContext.Provider value={{ audits, companyName, lang, setLang, refreshData }}>
             {children}
         </AppContext.Provider>
     );
