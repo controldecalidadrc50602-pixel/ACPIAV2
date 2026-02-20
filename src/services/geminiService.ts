@@ -147,7 +147,8 @@ export const analyzeText = async (content: string, rubric: RubricItem[], lang: L
             }
         });
 
-        updateUsageStats((response as any).usageMetadata?.totalTokenCount || 1000);
+       // En lugar de updateUsageStats(userId), simplemente llama a la función:
+await updateUsageStats();
         const parsed = JSON.parse(cleanJsonResponse(response.text || "{}"));
         return normalizeResult(parsed, rubric);
     });
@@ -168,8 +169,8 @@ export const analyzeAudio = async (base64Audio: string, rubric: RubricItem[], la
                 temperature: 0.1
             }
         });
-
-        updateUsageStats((response as any).usageMetadata?.totalTokenCount || 2000);
+// En lugar de updateUsageStats(userId), simplemente llama a la función:
+await updateUsageStats();
         const parsed = JSON.parse(cleanJsonResponse(response.text || "{}"));
         return normalizeResult(parsed, rubric);
     });
