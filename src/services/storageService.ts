@@ -1,14 +1,18 @@
 import { supabase } from './supabaseClient';
 
-// --- AUTH & CONFIG ---
-export const getOrgId = () => 'acpia-pilot';
-export const getUsageStats = async () => ({ aiAuditsCount: 0, limit: 9999, isUnlimited: true });
-export const updateUsageStats = async () => true;
-
+// --- CONFIGURACIÓN Y THEME ---
 export const getAppSettings = async () => {
     const { data } = await supabase.from('settings').select('*').single();
     return data || { theme: 'light', lang: 'es', companyName: 'ACPIA' };
 };
+
+export const saveAppSettings = async (settings: any) => {
+    const { error } = await supabase.from('settings').upsert([settings]);
+    return !error;
+};
+
+export const saveTheme = (theme: string) => localStorage.setItem('theme', theme);
+export const getTheme = () => localStorage.getItem('theme') || 'light';
 
 // --- ENTIDADES ---
 export const getAgents = async () => {
@@ -24,6 +28,11 @@ export const getProjects = async () => {
 export const getRubric = async () => {
     const { data } = await supabase.from('rubrics').select('*').order('label');
     return data || [];
+};
+
+export const toggleRubricItem = async (id: string, isActive: boolean) => {
+    const { error } = await supabase.from('rubrics').update({ isActive }).eq('id', id);
+    return !error;
 };
 
 // --- AUDITORÍAS ---
@@ -43,12 +52,21 @@ export const saveAudit = async (auditData: any) => {
         "status": auditData.status || 'PENDING_REVIEW',
         "organizationId": 'acpia-pilot'
     }]);
-    if (error) console.error("Error saving audit:", error);
     return !error;
 };
 
 // --- UTILIDADES ---
+export const exportData = () => {
+    console.log("Exportando datos...");
+};
+
+export const clearAllData = async () => {
+    localStorage.clear();
+    return true;
+};
+
 export const logSecurityEvent = async (u: string, e: string) => console.log(`[SEC] ${e}`);
+
 export const downloadCSV = (data: any[]) => {
     const csv = "data:text/csv;charset=utf-8," + data.map(e => Object.values(e).join(",")).join("\n");
     window.open(encodeURI(csv));
