@@ -1,15 +1,13 @@
 import { supabase } from './supabaseClient';
 
-// --- AUTH COMPATIBILITY (Bypass para errores de importación) ---
+// --- AUTH & USER ---
 export const authenticate = async () => ({ success: true });
 export const initAuth = async () => ({ success: true });
-
-// --- USUARIOS Y PERMISOS ---
 export const getOrgId = () => 'acpia-pilot';
 export const getUsageStats = async () => ({ aiAuditsCount: 0, limit: 9999, isUnlimited: true });
 export const updateUsageStats = async () => true;
 
-// --- ENTIDADES ---
+// --- ENTIDADES (AGENTES & PROYECTOS) ---
 export const getAgents = async () => {
     const { data } = await supabase.from('agents').select('*').order('name');
     return data || [];
@@ -23,11 +21,6 @@ export const getProjects = async () => {
 export const getRubric = async () => {
     const { data } = await supabase.from('rubrics').select('*').order('label');
     return data || [];
-};
-
-export const toggleRubricItem = async (id: string, isActive: boolean) => {
-    const { error } = await supabase.from('rubrics').update({ isActive }).eq('id', id);
-    return !error;
 };
 
 // --- AUDITORÍAS ---
@@ -50,10 +43,32 @@ export const saveAudit = async (auditData: any) => {
     return !error;
 };
 
+// --- COPILOT / CHAT SESSIONS (Lo que faltaba) ---
+export const getChatSessions = async () => {
+    const { data } = await supabase.from('chat_sessions').select('*').order('updated_at', { ascending: false });
+    return data || [];
+};
+
+export const saveChatSession = async (session: any) => {
+    const { error } = await supabase.from('chat_sessions').upsert([session]);
+    return !error;
+};
+
+export const deleteChatSession = async (id: string) => {
+    const { error } = await supabase.from('chat_sessions').delete().eq('id', id);
+    return !error;
+};
+
+export const createNewSession = async () => {
+    const newSession = { id: crypto.randomUUID(), title: 'Nueva Conversación', messages: [], updated_at: new Date() };
+    await saveChatSession(newSession);
+    return newSession;
+};
+
 // --- CONFIGURACIÓN ---
 export const getAppSettings = async () => {
     const { data } = await supabase.from('settings').select('*').single();
-    return data || { theme: 'light', lang: 'es', companyName: 'ACPIA', logoBase64: '' };
+    return data || { theme: 'light', lang: 'es', companyName: 'ACPIA', chatbotName: 'ACPIA Copilot' };
 };
 
 export const saveAppSettings = async (settings: any) => {
