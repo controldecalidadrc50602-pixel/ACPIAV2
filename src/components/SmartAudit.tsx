@@ -5,7 +5,7 @@ import {
     Smile, Meh, Frown, Sparkles, Mic, MessageSquare, Bot, Star, ShieldAlert, Share2, ArrowLeft, ShieldCheck,
     Clock, Users, XCircle
 } from 'lucide-react';
-import { Language, Agent, Project, AuditType, SmartAnalysisResult, RubricItem, Sentiment, SecurityReport, AuditStatus } from '../types';
+import { Language, Agent, Project, AuditType, SmartAnalysisResult, RubricItem, Sentiment, SecurityReport, AuditStatus, SubscriptionTier, UserRole } from '../types';
 import { translations } from '../utils/translations';
 import { getAgents, getProjects, getRubric, logSecurityEvent } from '../services/storageService';
 import { interceptAndValidate } from '../services/securityService';
@@ -33,7 +33,7 @@ interface SmartAuditProps {
 }
 
 export const SmartAudit: React.FC<SmartAuditProps> = ({ lang, onSave }) => {
-    const t = translations[lang];
+    const t = translations[lang] || translations['es'];
     const [step, setStep] = useState<'selection' | 'upload' | 'results' | 'security_blocked'>('selection');
     const [mode, setMode] = useState<'audio' | 'text'>('audio');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -97,14 +97,22 @@ export const SmartAudit: React.FC<SmartAuditProps> = ({ lang, onSave }) => {
     const runSecurityAnalysis = async () => {
         if (!rawContent || !currentUser) return;
 
-        // 1. Check SaaS Limits (CORREGIDO: await y validación de string)
-        const usage = getUsageStats();
-        const isAllowed = await checkUsageLimit(currentUser.id, usage.aiAuditsCount);
+        // --- BYPASS DE SUSCRIPCIÓN MAESTRO ---
+        const hasFullAccess = 
+            currentUser.role === UserRole.ADMIN || 
+            currentUser.subscriptionTier === SubscriptionTier.ENTERPRISE ||
+            currentUser.organizationId === 'acpia-pilot' ||
+            currentUser.subscriptionTier === 'PRO';
 
-        if (!isAllowed) {
-            toast.error("Límite de plan alcanzado. Actualiza para continuar.");
-            return;
+        if (!hasFullAccess) {
+            const usage = getUsageStats();
+            const isAllowed = await checkUsageLimit(currentUser.id, usage.aiAuditsCount);
+            if (!isAllowed) {
+                toast.error(lang === 'es' ? "Límite de plan alcanzado. Actualiza para continuar." : "Plan limit reached. Upgrade to continue.");
+                return;
+            }
         }
+        // --- FIN BYPASS ---
 
         setIsAnalyzing(true);
         setSecReport(null);
@@ -273,159 +281,4 @@ export const SmartAudit: React.FC<SmartAuditProps> = ({ lang, onSave }) => {
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Ticket ID</label>
-                                <input type="text" value={interactionId} onChange={e => setInteractionId(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 p-4 rounded-2xl font-bold dark:text-white" placeholder="QA-001" />
-                            </div>
-                        </div>
-
-                        {!isAnalyzing ? (
-                            <div className="space-y-8">
-                                <div onClick={() => fileInputRef.current?.click()} className={`border-4 border-dashed rounded-[2.5rem] p-16 flex flex-col items-center justify-center transition-all group cursor-pointer ${rawContent ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:bg-slate-50'}`}>
-                                    {rawContent ? (
-                                        <div className="text-center space-y-4">
-                                            <CheckCircle className="w-20 h-20 text-emerald-500 mx-auto" />
-                                            <p className="font-black text-emerald-600 uppercase text-sm">Contenido Cargado</p>
-                                        </div>
-                                    ) : (
-                                        <div className="text-center space-y-4">
-                                            <Upload className="w-16 h-16 text-slate-400 group-hover:scale-110 transition-transform" />
-                                            <p className="font-black text-slate-400 uppercase text-xs tracking-widest">Subir Archivo</p>
-                                        </div>
-                                    )}
-                                    <input type="file" ref={fileInputRef} className="hidden" accept={mode === 'audio' ? "audio/*" : ".txt"} onChange={handleFileChange} />
-                                </div>
-                                <Button onClick={runSecurityAnalysis} disabled={!rawContent || !selectedAgent || !selectedProject} className="w-full h-20 rounded-[2rem] text-xl font-black uppercase tracking-tighter shadow-2xl">
-                                    <Sparkles className="w-6 h-6 mr-3" /> Iniciar Inteligencia
-                                </Button>
-                            </div>
-                        ) : (
-                            <div className="h-64 flex flex-col items-center justify-center space-y-6 bg-slate-50 dark:bg-slate-850 rounded-[3rem] animate-pulse">
-                                <Bot className="w-20 h-20 text-indigo-500 animate-bounce" />
-                                <h3 className="text-2xl font-black uppercase tracking-tighter dark:text-white">Escaneando Contenido...</h3>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="max-w-6xl mx-auto pb-32 animate-fade-in-up space-y-8">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[3rem] shadow-2xl overflow-hidden">
-                <div className="p-8 border-b bg-slate-50 dark:bg-slate-850 flex justify-between items-center">
-                    <h2 className="text-2xl font-black uppercase text-slate-900 dark:text-white tracking-tighter flex items-center gap-4">
-                        <Sparkles className="w-8 h-8 text-indigo-600" /> Inferencia de Resultados
-                    </h2>
-                    <div className="flex gap-3">
-                        <Button variant="secondary" onClick={() => setStep('upload')} className="h-14 px-8 rounded-2xl font-black uppercase text-xs">Reintentar</Button>
-                        <Button
-                            variant="secondary"
-                            onClick={() => result && generateAuditPDF({
-                                id: Date.now().toString(),
-                                readableId: interactionId || 'DRAFT',
-                                agentName: selectedAgent,
-                                project: selectedProject,
-                                date,
-                                type: mode === 'audio' ? AuditType.VOICE : AuditType.CHAT,
-                                status: AuditStatus.PENDING_REVIEW,
-                                csat: result.csat,
-                                qualityScore: result.score,
-                                aiNotes: result.notes,
-                                sentiment: result.sentiment
-                            }, secReport)}
-                            className="h-14 px-8 rounded-2xl font-black uppercase text-xs"
-                        >
-                            Descargar PDF
-                        </Button>
-                        <Button onClick={handleSave} className="h-14 px-8 rounded-2xl font-black uppercase text-xs shadow-xl shadow-indigo-600/20" icon={<Save className="w-4 h-4" />}>Confirmar Registro</Button>
-                    </div>
-                </div>
-
-                <div className="p-10 space-y-10">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div className="bg-slate-900 rounded-3xl p-6 text-center border-2 border-indigo-500/30">
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Score Calidad</span>
-                            <div className="text-5xl font-black text-white">{result?.score ?? 0}%</div>
-                        </div>
-                        <div className="bg-slate-50 dark:bg-slate-850 rounded-3xl p-6 text-center border border-slate-200 dark:border-slate-800">
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Sentimiento Global</span>
-                            <div className="flex flex-col items-center justify-center gap-1">
-                                {getSentimentIcon(result?.sentiment)}
-                                <span className="font-black text-slate-900 dark:text-white uppercase text-xs truncate max-w-full">{result?.sentiment || 'NEUTRAL'}</span>
-                            </div>
-                        </div>
-                        <div className="bg-slate-50 dark:bg-slate-850 rounded-3xl p-6 text-center border border-slate-200 dark:border-slate-800">
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">Canal / Entorno</span>
-                            <div className="flex items-center justify-center gap-2">
-                                <Share2 className={`w-5 h-5 ${result?.interactionType === 'EXTERNAL' ? 'text-indigo-500' : 'text-emerald-500'}`} />
-                                <span className="font-black text-slate-900 dark:text-white uppercase text-xs">{result?.interactionType === 'EXTERNAL' ? "EXTERNO" : "INTERNO"}</span>
-                            </div>
-                        </div>
-                        <div className="bg-slate-50 dark:bg-slate-850 rounded-3xl p-6 text-center border border-slate-200 dark:border-slate-800">
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block mb-2">CSAT Estimado</span>
-                            <div className="flex justify-center gap-1">
-                                {[1, 2, 3, 4, 5].map(i => <Star key={i} className={`w-4 h-4 ${i <= (result?.csat || 0) ? 'text-yellow-400 fill-yellow-400' : 'text-slate-200 dark:text-slate-700'}`} />)}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="p-6 bg-indigo-50 dark:bg-indigo-950/20 border-2 border-indigo-200 dark:border-indigo-500/20 rounded-3xl flex items-center gap-6">
-                        <Clock className="w-10 h-10 text-indigo-500" />
-                        <div>
-                            <h4 className="font-black text-indigo-700 dark:text-indigo-400 uppercase text-[10px] tracking-widest">Eficiencia Temporal</h4>
-                            <p className="text-sm text-indigo-900 dark:text-indigo-200 font-bold uppercase tracking-widest">"{String(result?.durationAnalysis || 'CORRECTO')}"</p>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                        <div className="space-y-6">
-                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-3"><Users className="w-5 h-5 text-indigo-500" /> Roles Identificados</h3>
-                            <div className="space-y-3">
-                                {Array.isArray(result?.participants) && result!.participants.map((p, i) => (
-                                    <div key={i} className="p-4 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-black ${String(p.role).includes('AGENT') ? 'bg-indigo-600' : 'bg-emerald-600'}`}>
-                                                {String(p.role).includes('AGENT') ? 'A' : 'C'}
-                                            </div>
-                                            <div>
-                                                <p className="text-xs font-black dark:text-white uppercase truncate max-w-[120px]">{String(p.name || p.role)}</p>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase truncate max-w-[120px]">{String(p.tone || 'Neutro')}</p>
-                                            </div>
-                                        </div>
-                                        {getSentimentIcon(p.sentiment)}
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="space-y-4 pt-6">
-                                <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-3"><ShieldCheck className="w-5 h-5 text-indigo-500" /> Validación de Rúbrica</h3>
-                                <div className="grid grid-cols-1 gap-2">
-                                    {rubric.map(r => {
-                                        const val = !!(result?.customData && result.customData[r.id]);
-                                        return (
-                                            <div key={r.id} className="p-4 bg-slate-50 dark:bg-slate-850 rounded-xl flex items-center justify-between border border-slate-200 dark:border-slate-800">
-                                                <span className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">{t[r.id] || r.label}</span>
-                                                {val ? <CheckCircle className="text-emerald-500 w-4 h-4" /> : <XCircle className="text-red-500 w-4 h-4" />}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="lg:col-span-2 space-y-6">
-                            <h3 className="text-xs font-black text-indigo-500 uppercase tracking-[0.2em] flex items-center gap-3"><Bot className="w-6 h-6" /> Informe de Razonamiento ACPIA</h3>
-                            <div className="bg-white dark:bg-slate-900 p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden min-h-[400px]">
-                                {result?.notes ? (
-                                    <ReactMarkdown className="prose dark:prose-invert max-w-none ai-feedback-markdown prose-headings:text-indigo-600 dark:prose-headings:text-indigo-400 prose-headings:uppercase prose-headings:tracking-tighter">
-                                        {String(result.notes)}
-                                    </ReactMarkdown>
-                                ) : <p className="text-slate-500 italic text-center py-20">No se generó informe.</p>}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
+                                <input type="text" value={interactionId} onChange={e => setInteractionId(e.target.value)} className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border
