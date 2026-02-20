@@ -6,7 +6,6 @@ interface AppContextType {
     audits: Audit[];
     companyName: string;
     lang: 'es' | 'en';
-    setLang: (lang: 'es' | 'en') => void;
     refreshData: () => void;
 }
 
@@ -24,10 +23,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setLang((s.lang as 'es' | 'en') || 'es');
     };
 
-    useEffect(() => { refreshData(); }, []);
+    useEffect(() => {
+        refreshData();
+    }, []);
 
     return (
-        <AppContext.Provider value={{ audits, companyName, lang, setLang, refreshData }}>
+        <AppContext.Provider value={{ audits, companyName, lang, refreshData }}>
             {children}
         </AppContext.Provider>
     );
