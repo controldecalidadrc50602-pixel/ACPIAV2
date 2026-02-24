@@ -1,13 +1,14 @@
 import React from 'react';
 import { Management } from '../components/Management';
-import { useApp } from '../context/AppContext';
-import { useAuth } from '../context/AuthContext';
 
+/**
+ * Braily, nota como ya no recibimos 'lang' ni 'currentUser' aquí.
+ * El componente Management adentro usa 'useAuth' y 'useApp' para obtenerlos.
+ */
 export const ManagementPage: React.FC = () => {
-    const { lang, refreshData } = useApp();
-    const { currentUser } = useAuth();
-
-    if (!currentUser) return null;
-
-    return <Management />;
+    return (
+        <div className="animate-fade-in">
+            <Management />
+        </div>
+    );
 };
