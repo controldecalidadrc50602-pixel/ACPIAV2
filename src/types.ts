@@ -1,8 +1,31 @@
+// 1. Definimos los niveles de acceso y tipos de auditoría
 export enum UserRole {
   ADMIN = 'ADMIN',
   AUDITOR = 'AUDITOR',
   CLIENT = 'CLIENT'
 }
+
+export enum AuditType {
+  VOICE = 'VOICE',
+  CHAT = 'CHAT'
+}
+
+export enum AuditStatus {
+  DRAFT = 'DRAFT',
+  PENDING_REVIEW = 'PENDING_REVIEW',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}
+
+export enum SubscriptionTier {
+  FREE = 'FREE',
+  PRO = 'PRO',
+  ENTERPRISE = 'ENTERPRISE'
+}
+
+// 2. Definimos el idioma y seguridad
+export type Language = 'en' | 'es';
+export type Sentiment = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'MIXED';
 
 export enum SecurityLevel {
   GREEN = 'GREEN',
@@ -18,6 +41,7 @@ export interface SecurityReport {
   sanitizedContent: string;
 }
 
+// 3. Estructuras para la Inteligencia Artificial
 export interface Participant {
   name: string;
   role: 'AGENT' | 'CUSTOMER' | 'SUPERVISOR' | 'INTERNAL_STAFF' | 'UNKNOWN';
@@ -31,6 +55,7 @@ export interface SmartAnalysisResult {
   notes: string;
   customData: Record<string, boolean>;
   sentiment: string;
+  interactionType?: 'INTERNAL' | 'EXTERNAL'; // Agregado para GeminiService
 }
 
 export interface Message {
@@ -39,14 +64,45 @@ export interface Message {
   timestamp: number;
 }
 
+// 4. El corazón de la data: Auditorías, Usuarios y Rúbricas
 export interface User {
   id: string;
   name: string;
   role: UserRole;
   pin: string;
-  organizationId: string; // CamelCase para el estado interno
-  organization_id?: string; // snake_case para compatibilidad con DB (Error TS2551)
-  email?: string; // Añadido (Error TS2339)
+  organizationId: string;
+  organization_id?: string; 
+  email?: string;
+  subscriptionTier?: SubscriptionTier; // Agregado para AuthContext
 }
 
-// ... Mantén el resto de tus tipos (Audit, RubricItem, etc.)
+export interface Audit {
+  id: string;
+  readableId: string;
+  agentName: string;
+  project: string;
+  date: string;
+  type: AuditType;
+  status: AuditStatus;
+  csat: number;
+  qualityScore: number;
+  customData?: Record<string, boolean>;
+  sentiment?: Sentiment;
+  aiNotes?: string;
+}
+
+export interface RubricItem {
+  id: string;
+  label: string;
+  category: 'soft' | 'hard' | 'compliance';
+  isActive: boolean;
+  type: AuditType | 'BOTH';
+}
+
+export interface CoachingPlan {
+  id: string;
+  date: string;
+  topic: string;
+  tasks: string[];
+  status: 'pending' | 'completed';
+}
