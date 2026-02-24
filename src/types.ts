@@ -31,12 +31,6 @@ export interface SecurityReport {
   sanitizedContent: string;
 }
 
-export enum Perception {
-  OPTIMAL = 'Optimal',
-  ACCEPTABLE = 'Acceptable',
-  POOR = 'Poor'
-}
-
 export type Sentiment = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'MIXED';
 
 export interface Participant {
@@ -91,17 +85,6 @@ export interface Audit {
   organization_id?: string;
 }
 
-export interface VoiceAudit extends Audit {
-  duration: number;
-}
-
-export interface ChatAudit extends Audit {
-  chatTime: string;
-  initialResponseTime: string;
-  resolutionTime: string;
-  responseUnder5Min: boolean;
-}
-
 export interface AppSettings {
   companyName: string;
   logoBase64?: string;
@@ -111,25 +94,11 @@ export interface AppSettings {
   supabaseUrl?: string;
   supabaseKey?: string;
   subscriptionTier?: SubscriptionTier;
-}
-
-export enum View {
-  DASHBOARD = 'DASHBOARD',
-  CRM = 'CRM',
-  NEW_AUDIT = 'NEW_AUDIT',
-  SMART_AUDIT = 'SMART_AUDIT',
-  REPORTS = 'REPORTS',
-  MANAGEMENT = 'MANAGEMENT',
-  SETTINGS = 'SETTINGS',
-  AGENT_PROFILE = 'AGENT_PROFILE',
-  PROJECT_PROFILE = 'PROJECT_PROFILE',
-  COPILOT_PAGE = 'COPILOT_PAGE',
-  SUBSCRIPTION = 'SUBSCRIPTION'
+  lang?: Language; // Añadido para compatibilidad con Contexto
 }
 
 export type Language = 'en' | 'es';
 export type Theme = 'light' | 'dark';
-export type AgentTrend = 'UP' | 'DOWN' | 'STABLE';
 
 export interface Agent {
   id: string;
@@ -177,19 +146,12 @@ export interface Message {
   timestamp: number;
 }
 
-export interface CoachingPlan {
-  id: string;
-  date: string;
-  topic: string;
-  tasks: string[];
-  status: 'pending' | 'completed';
-}
-
 export interface ChatSession {
   id: string;
   title: string;
-  date: number;
+  date: number | string; // 👈 CORRECCIÓN: Acepta string de Supabase
   messages: Message[];
+  created_at?: string;
 }
 
 export interface SubscriptionPlan {
@@ -201,12 +163,4 @@ export interface SubscriptionPlan {
   aiLimitValue: number;
   features: string[];
   recommended?: boolean;
-}
-
-export interface Badge {
-  id: string;
-  name: string;
-  icon: string;
-  description: string;
-  color: string;
 }
