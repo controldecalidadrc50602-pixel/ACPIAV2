@@ -24,18 +24,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ audits, lang }) => {
 
   useEffect(() => {
     let mounted = true;
-    
     const loadDashboardData = async () => {
         if (audits.length > 0) {
             setInsight(t.generating || 'Generando Inteligencia...');
             const result = await getQuickInsight(audits, lang);
             if (mounted) setInsight(result);
         }
-        
         const projectsData = await getProjects();
         if (mounted) setProjects(projectsData);
     };
-
     loadDashboardData();
     return () => { mounted = false; };
   }, [audits, lang]); 
@@ -49,7 +46,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ audits, lang }) => {
                   <div className="w-24 h-24 bg-indigo-600 rounded-[2rem] flex items-center justify-center mx-auto mb-10 text-white shadow-2xl">
                       <Zap className="w-12 h-12" />
                   </div>
-                  <h2 className="text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tighter uppercase">
+                  <h2 className="text-5xl font-black text-slate-900 dark:text-white mb-6 tracking-tighter uppercase leading-none">
                       {t.welcomeTitle || 'Consola de Inteligencia'}
                   </h2>
                   <p className="text-slate-500 max-w-2xl mx-auto mb-16 text-xs font-black uppercase tracking-[0.3em]">
@@ -86,7 +83,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ audits, lang }) => {
   return (
     <div className="flex flex-col lg:flex-row gap-8 pb-24 animate-fade-in-up">
       <div className="flex-1 space-y-8">
-        
+        {/* INSIGHT CARD */}
         <div className="bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 relative overflow-hidden group shadow-2xl">
             <div className="relative z-10">
                 <div className="flex items-center justify-between mb-6">
@@ -99,6 +96,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ audits, lang }) => {
             </div>
         </div>
 
+        {/* METRICS GRID */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <KpiCard label={t.totalAudits || "Total"} val={totalAudits} icon={<TrendingUp className="text-indigo-400" />} />
             <KpiCard label={t.avgCsat || "CSAT"} val={avgCsat} icon={<Users className="text-emerald-400" />} />
@@ -106,6 +104,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ audits, lang }) => {
             <KpiCard label={t.chat || "Chat"} val={chatAudits} icon={<MessageSquare className="text-purple-400" />} />
         </div>
 
+        {/* CHARTS SECTION */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <ChartContainer title={t.projectPerformance || "Desempeño"} icon={<Layout className="text-indigo-500" />}>
                 <div className="h-[260px] w-full">
@@ -137,8 +136,39 @@ export const Dashboard: React.FC<DashboardProps> = ({ audits, lang }) => {
         </div>
       </div>
 
+      {/* SIDEBAR DASHBOARD */}
       <div className="w-full lg:w-96 space-y-8">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-[2.5rem] shadow-xl overflow-hidden">
               <div className="p-6 bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3">
                   <AlertTriangle className="w-5 h-5 text-orange-500" />
-                  <h3 className="font-black text-slate-
+                  <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tighter text-sm">{t.earlyWarning || "Alertas"}</h3>
+              </div>
+              <div className="p-6">
+                   <div className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Status Operativo</p>
+                      <p className="text-slate-900 dark:text-white font-bold italic">Flujo de Calidad Estable</p>
+                  </div>
+              </div>
+          </div>
+      </div>
+    </div>
+  );
+};
+
+const KpiCard = ({ label, val, icon }: any) => (
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-[2rem] shadow-xl relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">{icon}</div>
+        <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">{label}</p>
+        <h3 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter italic">{val}</h3>
+    </div>
+);
+
+const ChartContainer = ({ title, icon, children }: any) => (
+    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-[2.5rem] shadow-xl">
+        <div className="flex items-center gap-4 mb-8">
+            <div className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl">{icon}</div>
+            <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tighter text-sm">{title}</h3>
+        </div>
+        {children}
+    </div>
+);
