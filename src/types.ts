@@ -1,10 +1,3 @@
-// 1. Definimos los niveles de acceso y tipos de auditoría
-export enum UserRole {
-  ADMIN = 'ADMIN',
-  AUDITOR = 'AUDITOR',
-  CLIENT = 'CLIENT'
-}
-
 export enum AuditType {
   VOICE = 'VOICE',
   CHAT = 'CHAT'
@@ -23,25 +16,25 @@ export enum SubscriptionTier {
   ENTERPRISE = 'ENTERPRISE'
 }
 
-// 2. Definimos el idioma y seguridad
 export type Language = 'en' | 'es';
 export type Sentiment = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'MIXED';
 
-export enum SecurityLevel {
-  GREEN = 'GREEN',
-  YELLOW = 'YELLOW',
-  RED = 'RED'
+// --- NUEVAS PIEZAS AGREGADAS ---
+
+export interface Agent {
+  id: string;
+  name: string;
+  organization_id?: string;
 }
 
-export interface SecurityReport {
-  isBlocked: boolean;
-  reason?: string;
-  flags: string[];
-  details: string;
-  sanitizedContent: string;
+export interface Project {
+  id: string;
+  name: string;
+  targets?: { score: number; csat: number };
+  rubricIds?: string[];
+  organization_id?: string;
 }
 
-// 3. Estructuras para la Inteligencia Artificial
 export interface Participant {
   name: string;
   role: 'AGENT' | 'CUSTOMER' | 'SUPERVISOR' | 'INTERNAL_STAFF' | 'UNKNOWN';
@@ -55,7 +48,8 @@ export interface SmartAnalysisResult {
   notes: string;
   customData: Record<string, boolean>;
   sentiment: string;
-  interactionType?: 'INTERNAL' | 'EXTERNAL'; // Agregado para GeminiService
+  interactionType?: 'INTERNAL' | 'EXTERNAL';
+  participants: Participant[]; // 👈 Esto arregla el error de GeminiService
 }
 
 export interface Message {
@@ -64,16 +58,11 @@ export interface Message {
   timestamp: number;
 }
 
-// 4. El corazón de la data: Auditorías, Usuarios y Rúbricas
-export interface User {
+export interface ChatSession {
   id: string;
-  name: string;
-  role: UserRole;
-  pin: string;
-  organizationId: string;
-  organization_id?: string; 
-  email?: string;
-  subscriptionTier?: SubscriptionTier; // Agregado para AuthContext
+  title: string;
+  date: number | string;
+  messages: Message[];
 }
 
 export interface Audit {
@@ -91,6 +80,18 @@ export interface Audit {
   aiNotes?: string;
 }
 
+// Estos dos "extienden" a Audit (heredan sus propiedades)
+export interface VoiceAudit extends Audit {
+  duration: number;
+}
+
+export interface ChatAudit extends Audit {
+  chatTime: string;
+  initialResponseTime: string;
+  resolutionTime: string;
+  responseUnder5Min: boolean;
+}
+
 export interface RubricItem {
   id: string;
   label: string;
@@ -99,10 +100,13 @@ export interface RubricItem {
   type: AuditType | 'BOTH';
 }
 
-export interface CoachingPlan {
+export interface User {
   id: string;
-  date: string;
-  topic: string;
-  tasks: string[];
-  status: 'pending' | 'completed';
+  name: string;
+  role: any;
+  organizationId: string;
+  organization_id?: string;
+  pin: string;
+  email?: string;
+  subscriptionTier?: SubscriptionTier;
 }
