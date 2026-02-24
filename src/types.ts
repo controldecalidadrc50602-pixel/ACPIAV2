@@ -1,4 +1,6 @@
-// 1. Roles y Suscripción
+export type Language = 'en' | 'es';
+export type Sentiment = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'MIXED';
+
 export enum UserRole {
   ADMIN = 'ADMIN',
   AUDITOR = 'AUDITOR',
@@ -11,22 +13,11 @@ export enum SubscriptionTier {
   ENTERPRISE = 'ENTERPRISE'
 }
 
-// 2. Seguridad y Análisis
-export enum SecurityLevel {
-  GREEN = 'GREEN',
-  YELLOW = 'YELLOW',
-  RED = 'RED'
+export enum AuditType {
+  VOICE = 'VOICE',
+  CHAT = 'CHAT'
 }
 
-export interface SecurityReport {
-  isBlocked: boolean;
-  reason?: string;
-  flags: string[];
-  details: string;
-  sanitizedContent: string;
-}
-
-// 3. El corazón de la data
 export enum AuditStatus {
   DRAFT = 'DRAFT',
   PENDING_REVIEW = 'PENDING_REVIEW',
@@ -34,33 +25,42 @@ export enum AuditStatus {
   REJECTED = 'REJECTED'
 }
 
-export interface Audit {
-  id: string;
-  readableId: string;
-  agentName: string;
-  project: string;
-  date: string;
-  type: any;
-  status: AuditStatus;
-  csat: number;
-  qualityScore: number;
-  customData?: Record<string, boolean>;
-  sentiment?: string;
-  aiNotes?: string;
-}
-
-// 4. Entidades y Sesiones
-export interface Agent {
+export interface User {
   id: string;
   name: string;
-  organizationId: string;
+  role: UserRole;
+  pin: string;
+  email?: string;
+  subscriptionTier?: SubscriptionTier;
+  organizationId: string;    
+  organization_id?: string;  
 }
 
-export interface ChatSession {
+export interface RubricItem {
   id: string;
-  title: string;
-  date: number | string;
-  messages: any[];
+  label: string;
+  category: 'soft' | 'hard' | 'compliance';
+  isActive: boolean;
+  type: AuditType | 'BOTH';
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  targets?: { score: number; csat: number };
+}
+
+export interface Message {
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+}
+
+export interface Participant {
+  name: string;
+  role: 'AGENT' | 'CUSTOMER' | 'SUPERVISOR' | 'INTERNAL_STAFF' | 'UNKNOWN';
+  sentiment: string;
+  tone: string;
 }
 
 export interface SmartAnalysisResult {
@@ -69,24 +69,5 @@ export interface SmartAnalysisResult {
   notes: string;
   customData: Record<string, boolean>;
   sentiment: string;
-}
-
-export interface CoachingPlan {
-  id: string;
-  date: string;
-  topic: string;
-  tasks: string[];
-  status: 'pending' | 'completed';
-}
-
-// 5. El Usuario (Aquí arreglamos el conflicto de organization_id)
-export interface User {
-  id: string;
-  name: string;
-  role: UserRole;
-  pin: string;
-  organizationId: string; // CamelCase para el código
-  organization_id?: string; // 👈 Agregamos este para que Supabase sea feliz también
-  email?: string;
-  subscriptionTier?: SubscriptionTier;
+  interactionType?: 'INTERNAL' | 'EXTERNAL'; // 👈 Esto arregla el error de geminiService
 }
