@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const login = (user: User) => setCurrentUser(user);
     
     const logout = async () => {
-        await supabase.signOut(); // Usando el método del cliente
+        await supabase.auth.signOut(); // Usando el método del cliente
         setCurrentUser(null);
     };
 
