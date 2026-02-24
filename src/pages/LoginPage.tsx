@@ -7,5 +7,5 @@ export const LoginPage: React.FC = () => {
     const { login } = useAuth();
     const { lang, setLang } = useApp();
 
-    return <Login onLogin={login} lang={lang} setLang={setLang} />;
+    return <Login />;
 };
