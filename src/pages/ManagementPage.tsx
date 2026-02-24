@@ -9,5 +9,5 @@ export const ManagementPage: React.FC = () => {
 
     if (!currentUser) return null;
 
-    return <Management lang={lang} currentUser={currentUser} onDataChange={refreshData} />;
+    return <Management />;
 };
