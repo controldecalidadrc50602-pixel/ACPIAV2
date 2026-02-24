@@ -19,28 +19,35 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const email = supabaseUser.email || '';
         const isRC506 = email.toLowerCase().endsWith('@rc506.com');
         
+        // Mapeamos los metadatos de Supabase a nuestra interfaz User
         return {
             id: supabaseUser.id,
             name: supabaseUser.user_metadata?.name || email.split('@')[0],
-            email: email,
-            // Bypass RC506: Acceso total garantizado
+            email: email, // Esto ya no dará error con el types.ts actualizado
             role: isRC506 ? UserRole.ADMIN : (supabaseUser.user_metadata?.role as UserRole || UserRole.CLIENT),
             organizationId: isRC506 ? 'RC506_PILOT' : (supabaseUser.user_metadata?.organizationId || 'GLOBAL'),
-            organization_id: isRC506 ? 'rc506_pilot' : (supabaseUser.user_metadata?.organizationId || 'global'),
+            organization_id: isRC506 ? 'rc506_pilot' : (supabaseUser.user_metadata?.organization_id || 'global'),
             subscriptionTier: isRC506 ? SubscriptionTier.ENTERPRISE : (supabaseUser.user_metadata?.subscriptionTier as SubscriptionTier || SubscriptionTier.PRO),
             pin: '2026'
         };
     };
 
     useEffect(() => {
+        // Carga inicial de la sesión
         supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) setCurrentUser(enrichUser(session.user));
+            if (session?.user) {
+                setCurrentUser(enrichUser(session.user));
+            }
             setLoading(false);
         });
 
+        // Escucha cambios en el estado de autenticación (Login/Logout)
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (session?.user) setCurrentUser(enrichUser(session.user));
-            else setCurrentUser(null);
+            if (session?.user) {
+                setCurrentUser(enrichUser(session.user));
+            } else {
+                setCurrentUser(null);
+            }
             setLoading(false);
         });
 
@@ -48,8 +55,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const login = (user: User) => setCurrentUser(user);
+    
     const logout = async () => {
-        await supabase.auth.signOut();
+        await supabase.signOut(); // Usando el método del cliente
         setCurrentUser(null);
     };
 
@@ -64,6 +72,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (!context) throw new Error('useAuth error');
+    if (!context) throw new Error('useAuth must be used within an AuthProvider');
     return context;
 };
