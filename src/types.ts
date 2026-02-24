@@ -1,74 +1,61 @@
-// 1. Niveles de Usuario y Seguridad
+// 1. Idiomas y Sentimientos
+export type Language = 'en' | 'es';
+export type Sentiment = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'MIXED';
+
+// 2. Niveles de Suscripción y Roles
+export enum SubscriptionTier {
+  FREE = 'FREE',
+  PRO = 'PRO',
+  ENTERPRISE = 'ENTERPRISE'
+}
+
 export enum UserRole {
   ADMIN = 'ADMIN',
   AUDITOR = 'AUDITOR',
   CLIENT = 'CLIENT'
 }
 
-export enum SecurityLevel {
-  GREEN = 'GREEN',
-  YELLOW = 'YELLOW',
-  RED = 'RED'
+// 3. Tipos de Auditoría
+export enum AuditType {
+  VOICE = 'VOICE',
+  CHAT = 'CHAT'
 }
 
-export enum Perception {
-  OPTIMAL = 'Optimal',
-  ACCEPTABLE = 'Acceptable',
-  POOR = 'Poor'
-}
-
-// 2. Interfaces de Soporte
-export interface Badge {
+// 4. Interfaces (Los moldes de tus objetos)
+export interface User {
   id: string;
   name: string;
-  icon: string;
-  description: string;
-  color: string;
+  role: UserRole;
+  organizationId: string;
+  pin: string;
+  email?: string;
+  subscriptionTier?: SubscriptionTier;
 }
 
-export interface CoachingPlan {
+export interface Project {
   id: string;
-  date: string;
-  topic: string;
-  tasks: string[];
-  status: 'pending' | 'completed';
+  name: string;
+  targets?: { score: number; csat: number };
+  rubricIds?: string[];
 }
 
-export interface SecurityReport {
-  isBlocked: boolean;
-  reason?: string;
-  flags: string[];
-  details: string;
-  sanitizedContent: string;
+export interface RubricItem {
+  id: string;
+  label: string;
+  category: 'soft' | 'hard' | 'compliance';
+  isActive: boolean;
+  type: AuditType | 'BOTH';
 }
 
-// 3. Resultados de Inteligencia Artificial
-export interface SmartAnalysisResult {
-  score: number;
-  csat: number;
-  notes: string;
-  customData: Record<string, boolean>;
+export interface Message {
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+}
+
+export interface Participant {
+  name: string;
+  role: 'AGENT' | 'CUSTOMER' | 'SUPERVISOR' | 'INTERNAL_STAFF' | 'UNKNOWN';
   sentiment: string;
-  interactionType?: 'INTERNAL' | 'EXTERNAL';
-  participants: any[];
-  durationAnalysis?: string; // 👈 Agregado para arreglar GeminiService
+  tone: string;
 }
-
-// 4. Estructura de Auditoría (El Corazón)
-export interface Audit {
-  id: string;
-  readableId: string;
-  agentName: string;
-  project: string;
-  date: string;
-  type: any; 
-  status: any;
-  csat: number;
-  qualityScore: number;
-  customData?: Record<string, boolean>;
-  sentiment?: string;
-  aiNotes?: string;
-  isAiGenerated?: boolean; // 👈 Agregado para arreglar AuditCard
-}
-
-// ... Mantén tus otras interfaces como RubricItem, User, etc.
