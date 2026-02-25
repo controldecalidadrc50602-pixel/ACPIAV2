@@ -1,8 +1,6 @@
-// 1. Definiciones de Idioma y Sentimiento
 export type Language = 'en' | 'es';
 export type Sentiment = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'MIXED';
 
-// 2. Roles y Niveles (Enums)
 export enum UserRole {
   ADMIN = 'ADMIN',
   AUDITOR = 'AUDITOR',
@@ -13,6 +11,11 @@ export enum SubscriptionTier {
   FREE = 'FREE',
   PRO = 'PRO',
   ENTERPRISE = 'ENTERPRISE'
+}
+
+export enum AuditType {
+  VOICE = 'VOICE',
+  CHAT = 'CHAT'
 }
 
 export enum AuditStatus {
@@ -28,7 +31,12 @@ export enum SecurityLevel {
   RED = 'RED'
 }
 
-// 3. Estructuras de IA y Seguridad
+export enum Perception {
+  OPTIMAL = 'Optimal',
+  ACCEPTABLE = 'Acceptable',
+  POOR = 'Poor'
+}
+
 export interface SecurityReport {
   isBlocked: boolean;
   reason?: string;
@@ -50,28 +58,50 @@ export interface SmartAnalysisResult {
   notes: string;
   customData: Record<string, boolean>;
   sentiment: string;
-  participants: Participant[]; // 👈 Esto arregla geminiService
+  interactionType?: 'INTERNAL' | 'EXTERNAL';
+  participants: Participant[];
+  durationAnalysis?: string;
 }
 
-// 4. El corazón: Auditorías, Agentes y Usuarios
 export interface Audit {
   id: string;
   readableId: string;
   agentName: string;
   project: string;
   date: string;
-  type: any;
+  type: AuditType;
   status: AuditStatus;
   csat: number;
   qualityScore: number;
   customData?: Record<string, boolean>;
   sentiment?: Sentiment;
   aiNotes?: string;
+  isAiGenerated?: boolean;
+}
+
+export interface VoiceAudit extends Audit {
+  duration: number;
+}
+
+export interface ChatAudit extends Audit {
+  chatTime: string;
+  initialResponseTime: string;
+  resolutionTime: string;
+  responseUnder5Min: boolean;
 }
 
 export interface Agent {
   id: string;
   name: string;
+  organizationId?: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  targets?: { score: number; csat: number };
+  rubricIds?: string[];
+  organization_id?: string;
 }
 
 export interface CoachingPlan {
@@ -86,7 +116,21 @@ export interface ChatSession {
   id: string;
   title: string;
   date: number | string;
-  messages: any[];
+  messages: Message[];
+}
+
+export interface Message {
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+}
+
+export interface RubricItem {
+  id: string;
+  label: string;
+  category: 'soft' | 'hard' | 'compliance';
+  isActive: boolean;
+  type: AuditType | 'BOTH';
 }
 
 export interface User {
@@ -98,4 +142,12 @@ export interface User {
   organization_id?: string;
   email?: string;
   subscriptionTier?: SubscriptionTier;
+}
+
+export interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  color: string;
 }
