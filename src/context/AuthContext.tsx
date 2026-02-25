@@ -1,78 +1,74 @@
-export type Language = 'en' | 'es';
-export type Sentiment = 'POSITIVE' | 'NEUTRAL' | 'NEGATIVE' | 'MIXED';
+import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
+import { User, UserRole, SubscriptionTier } from '../types';
+import { supabase } from '../services/supabaseClient';
 
-export enum UserRole {
-  ADMIN = 'ADMIN',
-  AUDITOR = 'AUDITOR',
-  CLIENT = 'CLIENT'
+interface AuthContextType {
+    currentUser: User | null;
+    login: (user: User) => void;
+    logout: () => void;
+    isAdmin: boolean;
 }
 
-export enum SubscriptionTier {
-  FREE = 'FREE',
-  PRO = 'PRO',
-  ENTERPRISE = 'ENTERPRISE'
-}
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export enum AuditType {
-  VOICE = 'VOICE',
-  CHAT = 'CHAT'
-}
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
 
-export enum AuditStatus {
-  DRAFT = 'DRAFT',
-  PENDING_REVIEW = 'PENDING_REVIEW',
-  APPROVED = 'APPROVED',
-  REJECTED = 'REJECTED'
-}
+    const enrichUser = (supabaseUser: any): User => {
+        const email = supabaseUser.email || '';
+        const isRC506 = email.toLowerCase().endsWith('@rc506.com');
+        
+        return {
+            id: supabaseUser.id,
+            name: supabaseUser.user_metadata?.name || email.split('@')[0],
+            email: email,
+            role: isRC506 ? UserRole.ADMIN : (supabaseUser.user_metadata?.role as UserRole || UserRole.CLIENT),
+            organizationId: isRC506 ? 'RC506_PILOT' : (supabaseUser.user_metadata?.organizationId || 'GLOBAL'),
+            organization_id: isRC506 ? 'rc506_pilot' : (supabaseUser.user_metadata?.organization_id || 'global'),
+            subscriptionTier: isRC506 ? SubscriptionTier.ENTERPRISE : (supabaseUser.user_metadata?.subscriptionTier as SubscriptionTier || SubscriptionTier.PRO),
+            pin: '2026'
+        };
+    };
 
-export interface User {
-  id: string;
-  name: string;
-  role: UserRole;
-  pin: string;
-  email?: string;
-  subscriptionTier?: SubscriptionTier;
-  organizationId: string;    // Formato para React
-  organization_id?: string;  // Formato para Supabase
-}
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                setCurrentUser(enrichUser(session.user));
+            }
+            setLoading(false);
+        });
 
-export interface RubricItem {
-  id: string;
-  label: string;
-  category: 'soft' | 'hard' | 'compliance';
-  isActive: boolean;
-  type: AuditType | 'BOTH';
-}
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session?.user) {
+                setCurrentUser(enrichUser(session.user));
+            } else {
+                setCurrentUser(null);
+            }
+            setLoading(false);
+        });
 
-export interface Audit {
-  id: string;
-  readableId: string;
-  agentName: string;
-  project: string;
-  date: string;
-  type: AuditType;
-  status: AuditStatus;
-  csat: number;
-  qualityScore: number;
-  customData?: Record<string, boolean>;
-  sentiment?: Sentiment;
-  aiNotes?: string;
-}
+        return () => subscription.unsubscribe();
+    }, []);
 
-export interface Project {
-  id: string;
-  name: string;
-  targets?: { score: number; csat: number };
-}
+    const login = (user: User) => setCurrentUser(user);
+    
+    const logout = async () => {
+        await supabase.auth.signOut(); 
+        setCurrentUser(null);
+    };
 
-export interface Agent {
-  id: string;
-  name: string;
-}
+    const isAdmin = currentUser?.role === UserRole.ADMIN;
+
+    return (
+        <AuthContext.Provider value={{ currentUser, login, logout, isAdmin }}>
+            {!loading && children}
+        </AuthContext.Provider>
+    );
+};
+
 export const useAuth = () => {
     const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth debe ser usado dentro de un AuthProvider');
-    }
+    if (!context) throw new Error('useAuth must be used within an AuthProvider');
     return context;
 };
