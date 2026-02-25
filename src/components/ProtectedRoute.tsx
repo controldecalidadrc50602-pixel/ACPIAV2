@@ -1,51 +1,43 @@
 import React from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UserRole, SubscriptionTier } from '../types';
+import { SubscriptionTier } from '../types';
 
 interface ProtectedRouteProps {
-    requiredRole?: UserRole;
-    requiredPlan?: SubscriptionTier;
-    redirectPath?: string;
-    children?: React.ReactNode;
+    children: React.ReactNode;
+    requireAdmin?: boolean;
+    requireSubscription?: boolean;
 }
 
-// Actualizado con los nuevos Tiers de la Fase 1
-const PLAN_HIERARCHY: Record<SubscriptionTier, number> = {
-    [SubscriptionTier.FREE]: 0,
-    [SubscriptionTier.PRO]: 1, // Antes era STANDARD/AI_PRO
-    [SubscriptionTier.ENTERPRISE]: 2
+const limits: Record<SubscriptionTier, number> = {
+    [SubscriptionTier.FREE]: 10,
+    [SubscriptionTier.PRO]: 500,
+    [SubscriptionTier.ENTERPRISE]: 99999
 };
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
-    requiredRole,
-    requiredPlan,
-    redirectPath = '/login',
-    children
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+    children, 
+    requireAdmin = false, 
+    requireSubscription = false 
 }) => {
-    const { currentUser } = useAuth();
+    const { currentUser, isAdmin } = useAuth();
 
     if (!currentUser) {
-        return <Navigate to={redirectPath} replace />;
+        return <Navigate to="/" />;
     }
 
-    // El Administrador siempre tiene acceso a todo
-    if (requiredRole && currentUser.role !== requiredRole && currentUser.role !== UserRole.ADMIN) {
-        return <Navigate to="/app" replace />;
+    if (requireAdmin && !isAdmin) {
+        return <Navigate to="/app/dashboard" />;
     }
 
-    if (requiredPlan) {
-        const userPlan = currentUser.subscriptionTier || SubscriptionTier.FREE;
+    if (requireSubscription) {
+        // Le indicamos a TS que confíe en el tipo de suscripción
+        const userTier = (currentUser.subscriptionTier as SubscriptionTier) || SubscriptionTier.FREE;
+        const currentLimit = limits[userTier];
         
-        // Validación de jerarquía: Si el plan del usuario es menor al requerido, redirigir
-        if (PLAN_HIERARCHY[userPlan] < PLAN_HIERARCHY[requiredPlan]) {
-            return <Navigate to="/app/subscription" replace />;
-        }
+        // Aquí puedes agregar tu lógica si sobrepasa el límite
+        // if (usoActual > currentLimit) return <Navigate to="/billing" />
     }
 
-    return children ? <>{children}</> : <Outlet />;
+    return <>{children}</>;
 };
-// En ProtectedRoute.tsx
-// Buscamos el tier del usuario y le decimos a TS: "Confía en mí, es uno de estos"
-const userTier = (currentUser?.subscriptionTier as SubscriptionTier) || SubscriptionTier.FREE;
-const currentLimit = limits[userTier];
