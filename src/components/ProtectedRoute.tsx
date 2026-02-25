@@ -45,3 +45,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     return children ? <>{children}</> : <Outlet />;
 };
+// En ProtectedRoute.tsx
+// Buscamos el tier del usuario y le decimos a TS: "Confía en mí, es uno de estos"
+const userTier = (currentUser?.subscriptionTier as SubscriptionTier) || SubscriptionTier.FREE;
+const currentLimit = limits[userTier];
